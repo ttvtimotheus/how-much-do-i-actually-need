@@ -1,38 +1,37 @@
 {
-	"schemaVersion": 1,
-	"id": "how-much-do-i-actually-need",
-	"version": "${version}",
-	"name": "How Much Do I Actually Need",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/how-much-do-i-actually-need/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"dev.hmdain.client.HowMuchDoIActuallyNeed"
-		],
-		"client": [
-			"dev.hmdain.client.HowMuchDoIActuallyNeedClient"
-		]
-	},
-	"mixins": [
-		"how-much-do-i-actually-need.mixins.json",
-		{
-			"config": "how-much-do-i-actually-need.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "~1.21.5",
-		"java": ">=21",
-		"fabric-api": "*"
-	}
+  "schemaVersion": 1,
+  "id": "how-much-do-i-actually-need",
+  "version": "${version}",
+  "name": "How Much Do I Actually Need",
+  "description": "An in game crafting cost calculator that tells you exactly what materials you actually need.",
+  "authors": [
+    "timosaiya"
+  ],
+  "contact": {
+    "homepage": "https://github.com/ttvtimotheus",
+    "sources": "https://github.com/ttvtimotheus/how-much-do-i-actually-need"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/how-much-do-i-actually-need/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.hmdain.client.client.HowMuchClient"
+    ],
+    "modmenu": [
+      "dev.hmdain.client.integrations.ModMenuApiImpl"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "how-much-do-i-actually-need.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.5",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
 }
