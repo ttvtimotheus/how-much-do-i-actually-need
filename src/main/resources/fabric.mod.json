@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "how-much-do-i-actually-need",
+	"version": "${version}",
+	"name": "How Much Do I Actually Need",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/how-much-do-i-actually-need/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.hmdain.client.HowMuchDoIActuallyNeed"
+		],
+		"client": [
+			"dev.hmdain.client.HowMuchDoIActuallyNeedClient"
+		]
+	},
+	"mixins": [
+		"how-much-do-i-actually-need.mixins.json",
+		{
+			"config": "how-much-do-i-actually-need.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.5",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
