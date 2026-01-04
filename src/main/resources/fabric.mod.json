@@ -22,12 +22,6 @@
       "dev.hmdain.client.integrations.ModMenuApiImpl"
     ]
   },
-  "mixins": [
-    {
-      "config": "how-much-do-i-actually-need.client.mixins.json",
-      "environment": "client"
-    }
-  ],
   "depends": {
     "fabricloader": ">=0.18.4",
     "minecraft": "~1.21.5",

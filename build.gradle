@@ -38,7 +38,20 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	
+
+	// Owo Lib
+	annotationProcessor "io.wispforest:owo-lib:${project.owo_version}"
+	modImplementation "io.wispforest:owo-lib:${project.owo_version}"
+
+	// Mod Menu
+	modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+	// Cloth Config
+	modImplementation("maven.modrinth:cloth-config:${project.cloth_config_version}") {
+		exclude(group: "net.fabricmc.fabric-api")
+	}
+	// Cloth Config math dependency (needed for config screen)
+	implementation("me.shedaniel.cloth:basic-math:0.6.1")
 }
 
 processResources {
