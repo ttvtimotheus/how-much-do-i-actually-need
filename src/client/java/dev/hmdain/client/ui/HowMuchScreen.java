@@ -26,8 +26,8 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
     private FlowLayout resultListContainer;
     private TextBoxComponent searchField;
     
-    private static final int ITEM_SIZE = 18;
-    private static final int MAX_ITEMS = 200;
+    private static final int ITEM_SIZE = 16;
+    private static final int MAX_ITEMS = 150;
 
     @Override
     protected @NotNull OwoUIAdapter<FlowLayout> createAdapter() {
@@ -35,30 +35,36 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
     }
     
     private int getGridColumns() {
-        // Dynamically calculate columns based on available width
         var mc = Minecraft.getInstance();
         int screenWidth = mc.getWindow().getGuiScaledWidth();
-        int availableWidth = (int)(screenWidth * 0.35); // 35% of screen for item grid
-        return Math.max(4, Math.min(12, availableWidth / (ITEM_SIZE + 4)));
+        // Calculate based on left panel width (40% of 80% of screen)
+        int panelWidth = (int)(screenWidth * 0.32) - 16;
+        return Math.max(3, Math.min(9, panelWidth / (ITEM_SIZE + 3)));
     }
 
     @Override
     protected void build(FlowLayout rootComponent) {
+        var mc = Minecraft.getInstance();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
+        
         rootComponent
-                .surface(Surface.VANILLA_TRANSLUCENT)
-                .horizontalAlignment(HorizontalAlignment.CENTER)
-                .verticalAlignment(VerticalAlignment.CENTER)
-                .padding(Insets.of(5));
+            .surface(Surface.VANILLA_TRANSLUCENT)
+            .horizontalAlignment(HorizontalAlignment.CENTER)
+            .verticalAlignment(VerticalAlignment.CENTER);
 
-        // Main container - responsive sizing
-        var mainPanel = Containers.verticalFlow(Sizing.fill(95), Sizing.fill(90));
-        mainPanel.surface(Surface.DARK_PANEL);
-        mainPanel.padding(Insets.of(8));
-        mainPanel.gap(6);
+        // Main window - sized relative to screen
+        int windowWidth = Math.min(320, (int)(mc.getWindow().getGuiScaledWidth() * 0.85));
+        int windowHeight = Math.min(220, (int)(screenHeight * 0.80));
+        
+        var mainPanel = Containers.verticalFlow(Sizing.fixed(windowWidth), Sizing.fixed(windowHeight));
+        mainPanel.surface(Surface.PANEL);
+        mainPanel.padding(Insets.of(6));
+        mainPanel.gap(4);
 
-        // === HEADER ===
-        var header = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+        // Header
+        var header = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(12));
         header.horizontalAlignment(HorizontalAlignment.CENTER);
+        header.verticalAlignment(VerticalAlignment.CENTER);
         header.child(
             Components.label(Component.literal("How Much Do I Actually Need?"))
                 .color(Color.ofRgb(0x55FFFF))
@@ -66,75 +72,86 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
         );
         mainPanel.child(header);
 
-        // === MAIN CONTENT - Two columns ===
+        // Main content area
         var contentRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.fill(100));
-        contentRow.gap(10);
+        contentRow.gap(6);
 
-        // --- LEFT PANEL: Item Selection ---
-        var leftPanel = Containers.verticalFlow(Sizing.fill(45), Sizing.fill(100));
-        leftPanel.gap(5);
+        // === LEFT: Item Browser ===
+        var leftPanel = Containers.verticalFlow(Sizing.fill(40), Sizing.fill(100));
+        leftPanel.gap(3);
+        leftPanel.surface(Surface.DARK_PANEL);
+        leftPanel.padding(Insets.of(4));
 
-        // Search section
-        var searchLabel = Components.label(Component.literal("Search Items"))
-                .color(Color.ofRgb(0xAAAAAA));
-        leftPanel.child(searchLabel);
-
+        // Search box
         searchField = Components.textBox(Sizing.fill(100));
         searchField.text("");
         searchField.onChanged().subscribe(this::onSearchChanged);
         leftPanel.child(searchField);
 
-        // Item grid in scroll container
+        // Item grid
         var itemGridScroll = Containers.verticalScroll(
             Sizing.fill(100), 
             Sizing.fill(100),
-            Containers.verticalFlow(Sizing.fill(100), Sizing.content())
+            Containers.verticalFlow(Sizing.content(), Sizing.content())
         );
         itemGridScroll.surface(Surface.PANEL_INSET);
-        itemGridScroll.padding(Insets.of(4));
+        itemGridScroll.padding(Insets.of(2));
         
         itemGridContainer = (FlowLayout) itemGridScroll.child();
-        itemGridContainer.gap(2);
+        itemGridContainer.gap(1);
+        itemGridContainer.horizontalAlignment(HorizontalAlignment.LEFT);
         
         populateItemGrid("");
         leftPanel.child(itemGridScroll);
 
-        // --- RIGHT PANEL: Targets & Results ---
-        var rightPanel = Containers.verticalFlow(Sizing.fill(55), Sizing.fill(100));
-        rightPanel.gap(5);
+        // === RIGHT: Targets & Results ===
+        var rightPanel = Containers.verticalFlow(Sizing.fill(60), Sizing.fill(100));
+        rightPanel.gap(3);
 
-        // Targets Section
-        var targetHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
+        // Targets section
+        var targetSection = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(35));
+        targetSection.surface(Surface.DARK_PANEL);
+        targetSection.padding(Insets.of(4));
+        targetSection.gap(2);
+        
+        var targetHeader = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(12));
+        targetHeader.verticalAlignment(VerticalAlignment.CENTER);
         targetHeader.child(
-            Components.label(Component.literal("Craft Targets"))
+            Components.label(Component.literal("Targets"))
                 .color(Color.ofRgb(0x55FF55))
         );
-        var clearBtn = Components.button(Component.literal("Clear All"), btn -> {
+        
+        var clearBtn = Components.button(Component.literal("Clear"), btn -> {
             state.getTargets().clear();
             state.recalculate();
             updateUI();
         });
-        clearBtn.sizing(Sizing.content(), Sizing.fixed(14));
-        clearBtn.margins(Insets.left(5));
+        clearBtn.sizing(Sizing.fixed(32), Sizing.fixed(12));
+        clearBtn.margins(Insets.left(4));
         targetHeader.child(clearBtn);
-        rightPanel.child(targetHeader);
+        targetSection.child(targetHeader);
 
         var targetScroll = Containers.verticalScroll(
             Sizing.fill(100), 
-            Sizing.fixed(80),
+            Sizing.fill(100),
             Containers.verticalFlow(Sizing.fill(100), Sizing.content())
         );
         targetScroll.surface(Surface.PANEL_INSET);
-        targetScroll.padding(Insets.of(4));
+        targetScroll.padding(Insets.of(2));
         targetListContainer = (FlowLayout) targetScroll.child();
-        targetListContainer.gap(2);
-        rightPanel.child(targetScroll);
+        targetListContainer.gap(1);
+        targetSection.child(targetScroll);
+        rightPanel.child(targetSection);
 
-        // Results Section
-        rightPanel.child(
-            Components.label(Component.literal("Required Base Materials"))
+        // Results section
+        var resultSection = Containers.verticalFlow(Sizing.fill(100), Sizing.fill(65));
+        resultSection.surface(Surface.DARK_PANEL);
+        resultSection.padding(Insets.of(4));
+        resultSection.gap(2);
+        
+        resultSection.child(
+            Components.label(Component.literal("Base Materials"))
                 .color(Color.ofRgb(0xFFAA00))
-                .margins(Insets.top(5))
         );
 
         var resultScroll = Containers.verticalScroll(
@@ -143,18 +160,17 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
             Containers.verticalFlow(Sizing.fill(100), Sizing.content())
         );
         resultScroll.surface(Surface.PANEL_INSET);
-        resultScroll.padding(Insets.of(4));
+        resultScroll.padding(Insets.of(2));
         resultListContainer = (FlowLayout) resultScroll.child();
-        resultListContainer.gap(2);
-        rightPanel.child(resultScroll);
+        resultListContainer.gap(1);
+        resultSection.child(resultScroll);
+        rightPanel.child(resultSection);
 
         contentRow.child(leftPanel);
         contentRow.child(rightPanel);
         mainPanel.child(contentRow);
 
         rootComponent.child(mainPanel);
-        
-        // Initial UI update
         updateUI();
     }
     
@@ -168,7 +184,6 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
         String lowerSearch = search.toLowerCase().trim();
         List<Item> matchingItems = new ArrayList<>();
         
-        // Filter items
         BuiltInRegistries.ITEM.stream()
             .filter(item -> item != Items.AIR)
             .filter(item -> {
@@ -179,60 +194,55 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
             .limit(MAX_ITEMS)
             .forEach(matchingItems::add);
         
-        // Create grid rows
+        int cols = getGridColumns();
         FlowLayout currentRow = null;
         int itemsInRow = 0;
         
         for (Item item : matchingItems) {
-            if (currentRow == null || itemsInRow >= getGridColumns()) {
+            if (currentRow == null || itemsInRow >= cols) {
                 currentRow = Containers.horizontalFlow(Sizing.content(), Sizing.content());
-                currentRow.gap(2);
+                currentRow.gap(1);
                 itemGridContainer.child(currentRow);
                 itemsInRow = 0;
             }
             
-            var itemButton = createItemButton(item);
-            currentRow.child(itemButton);
+            var itemBtn = createItemButton(item);
+            currentRow.child(itemBtn);
             itemsInRow++;
         }
         
-        // Show message if no items found
         if (matchingItems.isEmpty()) {
             itemGridContainer.child(
-                Components.label(Component.literal("No items found"))
-                    .color(Color.ofRgb(0x888888))
-                    .margins(Insets.of(10))
+                Components.label(Component.literal("No items"))
+                    .color(Color.ofRgb(0x666666))
+                    .margins(Insets.of(4))
             );
         }
     }
     
     private FlowLayout createItemButton(Item item) {
-        var container = Containers.verticalFlow(Sizing.fixed(ITEM_SIZE + 2), Sizing.fixed(ITEM_SIZE + 2));
-        container.horizontalAlignment(HorizontalAlignment.CENTER);
-        container.verticalAlignment(VerticalAlignment.CENTER);
-        container.surface(Surface.PANEL);
-        container.cursorStyle(CursorStyle.HAND);
+        var btn = Containers.verticalFlow(Sizing.fixed(ITEM_SIZE + 2), Sizing.fixed(ITEM_SIZE + 2));
+        btn.horizontalAlignment(HorizontalAlignment.CENTER);
+        btn.verticalAlignment(VerticalAlignment.CENTER);
+        btn.surface(Surface.PANEL);
+        btn.cursorStyle(CursorStyle.HAND);
         
-        var itemComponent = Components.item(item.getDefaultInstance());
-        itemComponent.showOverlay(true);
-        container.child(itemComponent);
+        var itemComp = Components.item(item.getDefaultInstance());
+        btn.child(itemComp);
         
-        // Make clickable
-        container.mouseDown().subscribe((mouseX, mouseY, button) -> {
-            if (button == 0) { // Left click
+        btn.mouseDown().subscribe((mouseX, mouseY, button) -> {
+            if (button == 0) {
                 addTarget(item, 1);
                 return true;
-            } else if (button == 1) { // Right click - add stack
+            } else if (button == 1) {
                 addTarget(item, 64);
                 return true;
             }
             return false;
         });
         
-        // Tooltip
-        container.tooltip(item.getDefaultInstance().getHoverName());
-        
-        return container;
+        btn.tooltip(item.getDefaultInstance().getHoverName());
+        return btn;
     }
 
     private void addTarget(Item item, int amount) {
@@ -268,52 +278,43 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
         
         if (state.getTargets().isEmpty()) {
             targetListContainer.child(
-                Components.label(Component.literal("Click items to add targets"))
+                Components.label(Component.literal("Click items to add"))
                     .color(Color.ofRgb(0x666666))
-                    .margins(Insets.of(5))
             );
             return;
         }
         
         for (ItemStack stack : state.getTargets()) {
-            var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(20));
+            var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(16));
             row.verticalAlignment(VerticalAlignment.CENTER);
-            row.gap(4);
-            row.padding(Insets.horizontal(2));
+            row.gap(2);
             
-            // Item icon
-            var itemComp = Components.item(stack);
-            row.child(itemComp);
+            row.child(Components.item(stack));
             
-            // Item name (truncated)
             String name = stack.getHoverName().getString();
-            if (name.length() > 15) name = name.substring(0, 14) + "...";
+            if (name.length() > 12) name = name.substring(0, 11) + "..";
             row.child(
                 Components.label(Component.literal(name))
                     .color(Color.WHITE)
                     .sizing(Sizing.fill(100), Sizing.content())
             );
             
-            // Quantity controls
             var minusBtn = Components.button(Component.literal("-"), btn -> adjustTargetCount(stack, -1));
-            minusBtn.sizing(Sizing.fixed(14), Sizing.fixed(14));
+            minusBtn.sizing(Sizing.fixed(12), Sizing.fixed(12));
             row.child(minusBtn);
             
-            row.child(
-                Components.label(Component.literal(String.valueOf(stack.getCount())))
-                    .color(Color.ofRgb(0xFFFF55))
-                    .horizontalTextAlignment(HorizontalAlignment.CENTER)
-                    .sizing(Sizing.fixed(24), Sizing.content())
-            );
+            var countLabel = Components.label(Component.literal(String.valueOf(stack.getCount())));
+            countLabel.color(Color.ofRgb(0xFFFF55));
+            countLabel.sizing(Sizing.fixed(20), Sizing.content());
+            row.child(countLabel);
             
             var plusBtn = Components.button(Component.literal("+"), btn -> adjustTargetCount(stack, 1));
-            plusBtn.sizing(Sizing.fixed(14), Sizing.fixed(14));
+            plusBtn.sizing(Sizing.fixed(12), Sizing.fixed(12));
             row.child(plusBtn);
             
-            // Remove button
-            var removeBtn = Components.button(Component.literal("X"), btn -> removeTarget(stack));
-            removeBtn.sizing(Sizing.fixed(14), Sizing.fixed(14));
-            row.child(removeBtn);
+            var xBtn = Components.button(Component.literal("x"), btn -> removeTarget(stack));
+            xBtn.sizing(Sizing.fixed(12), Sizing.fixed(12));
+            row.child(xBtn);
             
             targetListContainer.child(row);
         }
@@ -326,43 +327,33 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
         
         if (results.isEmpty()) {
             resultListContainer.child(
-                Components.label(Component.literal("Add targets to see materials"))
+                Components.label(Component.literal("Add targets first"))
                     .color(Color.ofRgb(0x666666))
-                    .margins(Insets.of(5))
             );
             return;
         }
         
-        // Sort by count descending
         results.entrySet().stream()
             .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue()))
             .forEach(entry -> {
                 var item = entry.getKey();
                 var count = entry.getValue();
                 
-                var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(18));
+                var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(14));
                 row.verticalAlignment(VerticalAlignment.CENTER);
-                row.gap(4);
-                row.padding(Insets.horizontal(2));
+                row.gap(3);
                 
-                // Item icon
                 row.child(Components.item(item.getDefaultInstance()));
                 
-                // Count with color based on amount
-                int countColor;
-                if (count > 1000) countColor = 0xFF5555; // Red for large amounts
-                else if (count > 100) countColor = 0xFFAA00; // Orange for medium
-                else countColor = 0x55FF55; // Green for small
-                
+                int color = count > 1000 ? 0xFF5555 : (count > 100 ? 0xFFAA00 : 0x55FF55);
                 row.child(
                     Components.label(Component.literal(formatCount(count) + "x"))
-                        .color(Color.ofRgb(countColor))
-                        .sizing(Sizing.fixed(45), Sizing.content())
+                        .color(Color.ofRgb(color))
+                        .sizing(Sizing.fixed(36), Sizing.content())
                 );
                 
-                // Item name
                 String name = item.getDefaultInstance().getHoverName().getString();
-                if (name.length() > 18) name = name.substring(0, 17) + "...";
+                if (name.length() > 14) name = name.substring(0, 13) + "..";
                 row.child(
                     Components.label(Component.literal(name))
                         .color(Color.WHITE)
@@ -371,29 +362,17 @@ public class HowMuchScreen extends BaseOwoScreen<FlowLayout> {
                 resultListContainer.child(row);
             });
         
-        // Total items summary
-        long totalItems = results.values().stream().mapToLong(Long::longValue).sum();
-        int uniqueItems = results.size();
-        
+        long total = results.values().stream().mapToLong(Long::longValue).sum();
         resultListContainer.child(
-            Containers.horizontalFlow(Sizing.fill(100), Sizing.fixed(1))
-                .surface(Surface.flat(0x44FFFFFF))
-                .margins(Insets.vertical(4))
-        );
-        
-        resultListContainer.child(
-            Components.label(Component.literal("Total: " + formatCount(totalItems) + " items (" + uniqueItems + " types)"))
+            Components.label(Component.literal("Total: " + formatCount(total)))
                 .color(Color.ofRgb(0xAAAAAA))
-                .margins(Insets.top(2))
+                .margins(Insets.top(3))
         );
     }
     
     private String formatCount(long count) {
-        if (count >= 1_000_000) {
-            return String.format("%.1fM", count / 1_000_000.0);
-        } else if (count >= 1000) {
-            return String.format("%.1fK", count / 1000.0);
-        }
+        if (count >= 1_000_000) return String.format("%.1fM", count / 1_000_000.0);
+        if (count >= 1000) return String.format("%.1fK", count / 1000.0);
         return String.valueOf(count);
     }
 }
